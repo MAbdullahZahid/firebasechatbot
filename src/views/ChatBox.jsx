@@ -2,25 +2,23 @@ import React, { useState } from "react";
 import { runGemini } from "../api/geminiApi";
 import ReactMarkdown from "react-markdown";
 import "../App.css";
+import { Send, User } from 'react-feather'; 
 
 const ChatBox = () => {
   const [message, setMessage] = useState("");
-  const [chatHistory, setChatHistory] = useState([]); // store previous messages
+  const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSend = async () => {
-    if (!message.trim()) return; // prevent empty queries
+    if (!message.trim()) return;
     const userMessage = message;
-    setMessage(""); // clear input field
+    setMessage("");
     setIsLoading(true);
 
-    // Add user message to chat
     setChatHistory((prev) => [...prev, { sender: "user", text: userMessage }]);
 
     try {
       const reply = await runGemini(userMessage);
-
-      // Add Gemini response
       setChatHistory((prev) => [...prev, { sender: "gemini", text: reply }]);
     } catch (error) {
       setChatHistory((prev) => [
@@ -32,7 +30,6 @@ const ChatBox = () => {
     }
   };
 
-  // Handle Enter key press
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -41,28 +38,75 @@ const ChatBox = () => {
   };
 
   return (
-    <div>
-      <div>
+    <div className="chat-container">
+      <div className="chat-header">
+        <h2>AI Chat</h2>
+        <div className="status-indicator">
+          <span className={`status-dot ${isLoading ? 'loading' : 'active'}`}></span>
+          {isLoading ? 'Thinking...' : 'Online'}
+        </div>
+      </div>
+      
+      <div className="chat-messages">
+        {chatHistory.length === 0 && (
+          <div className="empty-state">
+            <div className="empty-icon">💬</div>
+            <p>Ask AI anything!</p>
+          </div>
+        )}
+        
         {chatHistory.map((chat, index) => (
-          <p
+          <div
             key={index}
-            className={chat.sender === "user" ? "user-msg" : "bot-msg"}
+            className={`message ${chat.sender === "user" ? "user-message" : "bot-message"}`}
           >
-            <ReactMarkdown>{chat.text}</ReactMarkdown>
-          </p>
+            <div className="message-sender">
+              {chat.sender === "user" ? (
+                <User size={16} className="sender-icon" />
+              ) : (
+                <div className="gemini-icon">AI</div>
+              )}
+            </div>
+            <div className="message-content">
+              <ReactMarkdown>{chat.text}</ReactMarkdown>
+            </div>
+          </div>
         ))}
 
-        {isLoading && <div className="loader"></div>}
+        {isLoading && (
+          <div className="message bot-message">
+            <div className="message-sender">
+              <div className="gemini-icon">AI</div>
+            </div>
+            <div className="message-content">
+              <div className="typing-indicator">
+                <div className="dot"></div>
+                <div className="dot"></div>
+                <div className="dot"></div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      <input
-        type="text"
-        placeholder="Ask Gemini..."
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyDown={handleKeyDown}
-      />
-      <button onClick={handleSend}>Send</button>
+      <div className="chat-input-container">
+        <input
+          type="text"
+          placeholder="Ask AI something..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="chat-input"
+          disabled={isLoading}
+        />
+        <button 
+          onClick={handleSend} 
+          className="send-button"
+          disabled={isLoading || !message.trim()}
+        >
+          <Send size={18} />
+        </button>
+      </div>
     </div>
   );
 };
