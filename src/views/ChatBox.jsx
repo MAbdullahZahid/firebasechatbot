@@ -10,7 +10,6 @@ const ChatBox = () => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll to bottom when chat history changes
   useEffect(() => {
     scrollToBottom();
   }, [chatHistory]);
@@ -33,7 +32,7 @@ const ChatBox = () => {
     } catch (error) {
       setChatHistory((prev) => [
         ...prev,
-        { sender: "gemini", text: "⚠️ Error fetching response." },
+        { sender: "gemini", text: " Error fetching response." },
       ]);
     } finally {
       setIsLoading(false);
@@ -50,7 +49,7 @@ const ChatBox = () => {
   return (
     <div className="chat-container">
       <div className="chat-header">
-        <h2>AI Chat</h2>
+        <h2><strong>AI Chat</strong></h2>
         <div className="status-indicator">
           <span className={`status-dot ${isLoading ? 'loading' : 'active'}`}></span>
           {isLoading ? 'Thinking...' : 'Online'}
@@ -98,7 +97,7 @@ const ChatBox = () => {
           </div>
         )}
         
-        {/* This empty div is used for auto-scrolling */}
+    
         <div ref={messagesEndRef} />
       </div>
 
