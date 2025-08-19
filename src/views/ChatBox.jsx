@@ -1,13 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { runGemini } from "../api/geminiApi";
 import ReactMarkdown from "react-markdown";
 import "../App.css";
-import { Send, User } from 'react-feather'; 
+import { Send, User } from 'react-feather';
 
 const ChatBox = () => {
   const [message, setMessage] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  // Auto-scroll to bottom when chat history changes
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatHistory]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const handleSend = async () => {
     if (!message.trim()) return;
@@ -87,6 +97,9 @@ const ChatBox = () => {
             </div>
           </div>
         )}
+        
+        {/* This empty div is used for auto-scrolling */}
+        <div ref={messagesEndRef} />
       </div>
 
       <div className="chat-input-container">
