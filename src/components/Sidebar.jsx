@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { getUserChats, createChat } from "../services/chatService"; // ✅ also import createChat
 import { auth } from "../firebase";
 
-export default function Sidebar({ onSelectChat }) {
+export default function Sidebar({ onSelectChat , refreshKey}) {
   const [chats, setChats] = useState([]);
 
   const fetchChats = async () => {
@@ -16,6 +16,11 @@ export default function Sidebar({ onSelectChat }) {
   useEffect(() => {
     fetchChats();
   }, []);
+
+  useEffect(() => {
+  fetchChats();
+}, [refreshKey]);
+
 
   // ✅ handle New Chat
   const handleNewChat = async () => {

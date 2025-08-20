@@ -1,14 +1,16 @@
-// services/chatServices.js
 import { 
   collection, 
   addDoc, 
+  updateDoc,
+  doc,
   serverTimestamp, 
   getDocs, 
   query, 
   orderBy 
 } from "firebase/firestore";
 import { db } from "../firebase";
-// Create a new chat when user starts messaging
+
+// Create a new chat
 export async function createChat(uid, title = "New Chat") {
   const chatRef = await addDoc(collection(db, "users", uid, "chats"), {
     title,
@@ -17,6 +19,11 @@ export async function createChat(uid, title = "New Chat") {
   return chatRef.id;
 }
 
+// ✅ Update chat title later
+export async function updateChatTitle(uid, chatId, newTitle) {
+  const chatRef = doc(db, "users", uid, "chats", chatId);
+  await updateDoc(chatRef, { title: newTitle });
+}
 // Save message inside a chat
 export async function saveMessage(uid, chatId, role, text) {
   const messagesRef = collection(db, "users", uid, "chats", chatId, "messages");

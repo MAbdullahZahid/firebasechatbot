@@ -53,6 +53,8 @@ const LoginPage = ({ onLogin }) => {
               <span>Continue with Google</span>
             </div>
           </button>
+          
+         
         </div>
       </div>
       
@@ -60,6 +62,8 @@ const LoginPage = ({ onLogin }) => {
         <div className="floating-shape shape-1"></div>
         <div className="floating-shape shape-2"></div>
         <div className="floating-shape shape-3"></div>
+        <div className="floating-shape shape-4"></div>
+        <div className="floating-shape shape-5"></div>
       </div>
     </div>
   );
