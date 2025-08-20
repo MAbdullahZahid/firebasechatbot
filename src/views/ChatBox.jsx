@@ -22,43 +22,48 @@ export default function Chatbot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const messagesEndRef = useRef(null);
   const [chatSessions, setChatSessions] = useState({});
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const messagesEndRef = useRef(null);
 
-  // Fetch messages & initialize chat session
- useEffect(() => {
-  const initChat = async () => {
-    if (!selectedChat) return;
-    const user = auth.currentUser;
-    if (!user) return;
-
-    // Fetch messages for this chat
-    const msgs = await getChatMessages(user.uid, selectedChat);
-    setMessages(msgs);
-
-    // Reuse existing session or create new
-    let session = chatSessions[selectedChat];
-    if (!session) {
-      session = startNewChat();
-      // Replay previous messages for context
-      for (const msg of msgs) {
-        await session.sendMessage(msg.text, { role: msg.role });
-      }
-      setChatSessions(prev => ({ ...prev, [selectedChat]: session }));
-    }
-
-    setChatSession(session);
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
   };
 
-  initChat();
-}, [selectedChat]);
+  // Fetch messages & initialize chat session
+  useEffect(() => {
+    const initChat = async () => {
+      if (!selectedChat) return;
+      const user = auth.currentUser;
+      if (!user) return;
+
+      // Fetch messages for this chat
+      const msgs = await getChatMessages(user.uid, selectedChat);
+      setMessages(msgs);
+
+      // Reuse existing session or create new
+      let session = chatSessions[selectedChat];
+      if (!session) {
+        session = startNewChat();
+        // Replay previous messages for context
+        for (const msg of msgs) {
+          await session.sendMessage(msg.text, { role: msg.role });
+        }
+        setChatSessions(prev => ({ ...prev, [selectedChat]: session }));
+      }
+
+      setChatSession(session);
+    };
+
+    initChat();
+  }, [selectedChat]);
 
   // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-const handleSend = async () => {
+  const handleSend = async () => {
   if (!input.trim()) return;
   const user = auth.currentUser;
   if (!user) return;
@@ -140,18 +145,28 @@ const handleSend = async () => {
 
   return (
     <div className="chat-app">
-      <Sidebar onSelectChat={setSelectedChat} refreshKey={refreshKey} />
+      <Sidebar 
+        onSelectChat={setSelectedChat} 
+        refreshKey={refreshKey} 
+        isSidebarOpen={isSidebarOpen}
+        toggleSidebar={toggleSidebar}
+      />
       
       <div className="chat-main">
         {auth.currentUser && (
           <div className="user-header">
-            <div className="user-info">
-              <img
-                src={auth.currentUser.photoURL}
-                alt={auth.currentUser.displayName}
-                className="user-avatar"
-              />
-              <span className="user-name">{auth.currentUser.displayName}</span>
+            <div className="user-header-left">
+              <button className="hamburger-btn" onClick={toggleSidebar}>
+                ☰
+              </button>
+              <div className="user-info">
+                <img
+                  src={auth.currentUser.photoURL}
+                  alt={auth.currentUser.displayName}
+                  className="user-avatar"
+                />
+                <span className="user-name">{auth.currentUser.displayName}</span>
+              </div>
             </div>
             <button onClick={handleLogout} className="logout-btn">Logout</button>
           </div>

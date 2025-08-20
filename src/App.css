@@ -501,3 +501,140 @@ body {
 .messages-container::-webkit-scrollbar-thumb:hover {
   background: #95a5a6;
 }
+
+/* Mobile Hamburger Menu */
+.hamburger-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #2c3e50;
+  padding: 8px;
+  margin-right: 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.hamburger-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.user-header-left {
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 998;
+}
+
+.close-sidebar-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: white;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-sidebar-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hamburger-btn {
+    display: block;
+  }
+  
+  .sidebar {
+    position: fixed;
+    left: -300px;
+    top: 0;
+    bottom: 0;
+    z-index: 999;
+    transition: left 0.3s ease;
+  }
+  
+  .sidebar.sidebar-open {
+    left: 0;
+  }
+  
+  .sidebar-overlay {
+    display: block;
+  }
+  
+  .close-sidebar-btn {
+    display: block;
+  }
+  
+  .chat-app {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 280px;
+    height: 100%;
+    max-height: none;
+  }
+  
+  .user-header {
+    padding: 10px 15px;
+  }
+  
+  .messages-container {
+    padding: 15px;
+  }
+  
+  .message {
+    max-width: 90%;
+  }
+  
+  .input-container {
+    padding: 15px;
+  }
+}
+
+/* Mobile optimization for messages */
+@media (max-width: 480px) {
+  .message {
+    max-width: 95%;
+    padding: 10px 14px;
+  }
+  
+  .message-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .user-avatar {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .user-name {
+    font-size: 14px;
+  }
+  
+  .logout-btn {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+}
