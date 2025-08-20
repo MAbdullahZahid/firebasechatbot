@@ -73,7 +73,9 @@ export default function Chatbot() {
   setLoading(true);
 
   let chatId = selectedChat;
-  let isNewChat = false;
+  console.log("Selected chat ID:", chatId);
+  let isNewChat = true;
+console.log("Is new chat:", isNewChat);
 
   // Create new chat if none exists
   if (!chatId) {

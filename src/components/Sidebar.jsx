@@ -29,7 +29,6 @@ export default function Sidebar({ onSelectChat, refreshKey, isSidebarOpen, toggl
       await fetchChats();
       setActiveChat(newChatId);
       onSelectChat(newChatId);
-      // Close sidebar on mobile after selecting a chat
       if (window.innerWidth <= 768) {
         toggleSidebar();
       }
