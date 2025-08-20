@@ -78,52 +78,49 @@ const handleSend = async () => {
     isNewChat = true;
   }
 
-  // Ensure chatSession exists
+  // Ensure chat session exists
   let session = chatSessions[chatId];
   if (!session) {
     session = startNewChat();
-    // replay previous messages
+    // Replay previous messages for context
     for (const msg of messages) {
       await session.sendMessage(msg.text, { role: msg.role });
     }
     setChatSessions(prev => ({ ...prev, [chatId]: session }));
   }
 
-  // Save user message and add to session for context
-// Save user message and add to session for context
-await saveMessage(user.uid, chatId, "user", text);
-setMessages((prev) => [...prev, { role: "user", text, id: Date.now() }]);
-await session.sendMessage(text, { role: "user" });
+  // Save user message locally (display immediately)
+  await saveMessage(user.uid, chatId, "user", text);
+  setMessages(prev => [...prev, { role: "user", text, id: Date.now() }]);
 
-// Only generate title for first message using a TEMP session
-if (isNewChat) {
-  try {
-    const title = await generateChatTitle(text); // temp session inside generateChatTitle
-    await updateChatTitle(user.uid, chatId, title);
-    setRefreshKey(prev => prev + 1);
-    // DO NOT return here, allow AI to respond
-  } catch (err) {
-    console.error("Title generation failed:", err);
+  // Generate chat title if this is the first message (using temp session)
+  if (isNewChat) {
+    try {
+      const title = await generateChatTitle(text); // uses a temp session inside
+      await updateChatTitle(user.uid, chatId, title);
+      setRefreshKey(prev => prev + 1);
+    } catch (err) {
+      console.error("Title generation failed:", err);
+    }
   }
-}
-setLoading(true);
-// Now send message to Gemini for reply (including first message)
-let aiReply = "";
-try {
-  aiReply = await runGemini(session, text);
-} catch (err) {
-  aiReply = "⚠️ Something went wrong.";
-}
 
-// Save AI response
-await saveMessage(user.uid, chatId, "assistant", aiReply);
-setMessages((prev) => [
-  ...prev,
-  { role: "assistant", text: aiReply, id: Date.now() + 1 },
-]);
-setLoading(false);
-}
+  // Send user message to Gemini for AI reply
+  let aiReply = "";
+  try {
+    aiReply = await runGemini(session, text);
+  } catch (err) {
+    aiReply = "⚠️ Something went wrong.";
+  }
 
+  // Save AI response and update messages
+  await saveMessage(user.uid, chatId, "assistant", aiReply);
+  setMessages(prev => [
+    ...prev,
+    { role: "assistant", text: aiReply, id: Date.now() + 1 },
+  ]);
+
+  setLoading(false);
+};
 
 
   const handleKeyDown = (e) => {
