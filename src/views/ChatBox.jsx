@@ -2,13 +2,16 @@ import React, { useState, useEffect, useRef } from "react";
 import { runGemini } from "../api/geminiApi";
 import ReactMarkdown from "react-markdown";
 import "../App.css";
-import { Send, User } from 'react-feather';
+import { Send, User, LogOut } from "react-feather";
+import { auth, signOut } from "../firebase";
+import { useNavigate } from "react-router-dom";
 
 const ChatBox = () => {
   const [message, setMessage] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     scrollToBottom();
@@ -46,13 +49,30 @@ const ChatBox = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate("/login"); // go back to login page
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  };
+
   return (
     <div className="chat-container">
       <div className="chat-header">
         <h2><strong>AI Chat</strong></h2>
-        <div className="status-indicator">
-          <span className={`status-dot ${isLoading ? 'loading' : 'active'}`}></span>
-          {isLoading ? 'Thinking...' : 'Online'}
+
+        <div className="chat-actions">
+          <div className="status-indicator">
+            <span className={`status-dot ${isLoading ? 'loading' : 'active'}`}></span>
+            {isLoading ? 'Thinking...' : 'Online'}
+          </div>
+
+          {/* Logout button */}
+          <button onClick={handleLogout} className="logout-btn">
+            <LogOut size={18} /> Logout
+          </button>
         </div>
       </div>
       
@@ -97,7 +117,6 @@ const ChatBox = () => {
           </div>
         )}
         
-    
         <div ref={messagesEndRef} />
       </div>
 
