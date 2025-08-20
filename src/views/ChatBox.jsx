@@ -1,167 +1,87 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { getChatMessages, saveMessage } from "../services/chatService";
+import { auth } from "../firebase";
+import Sidebar from "../components/Sidebar";
 import { runGemini } from "../api/geminiApi";
-import ReactMarkdown from "react-markdown";
-import "../App.css";
-import { Send, User, LogOut } from "react-feather";
-import { auth, signOut } from "../firebase";
-import { useNavigate } from "react-router-dom";
-import { createChat, saveMessage } from "../services/chatService";
 
-const ChatBox = () => {
-  const [message, setMessage] = useState("");
-  const [chatHistory, setChatHistory] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [chatId, setChatId] = useState(null);
-  const messagesEndRef = useRef(null);
-  const navigate = useNavigate();
+export default function Chatbot() {
+  const [selectedChat, setSelectedChat] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
+  // fetch messages when chat changes
   useEffect(() => {
-    scrollToBottom();
-  }, [chatHistory]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const handleSend = async () => {
-    if (!message.trim()) return;
-    const userMessage = message;
-    setMessage("");
-    setIsLoading(true);
-
-    setChatHistory((prev) => [...prev, { sender: "user", text: userMessage }]);
-
-    try {
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
-
-      // If chat not yet created, create one
-      let currentChatId = chatId;
-      if (!currentChatId) {
-        currentChatId = await createChat(uid, "AI Chat");
-        setChatId(currentChatId);
+    async function fetchMessages() {
+      const user = auth.currentUser;
+      if (user && selectedChat) {
+        const msgs = await getChatMessages(user.uid, selectedChat);
+        setMessages(msgs);
       }
-
-      // Save user message
-      await saveMessage(uid, currentChatId, "user", userMessage);
-
-      // Get AI reply
-      const reply = await runGemini(userMessage);
-
-      // Show reply in UI
-      setChatHistory((prev) => [...prev, { sender: "gemini", text: reply }]);
-
-      // Save AI message
-      await saveMessage(uid, currentChatId, "ai", reply);
-
-    } catch (error) {
-      console.error("Send message failed:", error);
-      setChatHistory((prev) => [
-        ...prev,
-        { sender: "gemini", text: "Error fetching response." },
-      ]);
-    } finally {
-      setIsLoading(false);
     }
-  };
+    fetchMessages();
+  }, [selectedChat]);
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+  // handle send message
+  const handleSend = async () => {
+    if (!input.trim()) return;
+    const user = auth.currentUser;
+    if (!user || !selectedChat) return;
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout failed", error);
-    }
+    const text = input.trim();
+    setInput("");
+    setLoading(true);
+
+    // 1. save user message
+    await saveMessage(user.uid, selectedChat, "user", text);
+    setMessages((prev) => [...prev, { role: "user", text, id: Date.now() }]);
+
+    // 2. get AI response
+  const aiReply = await runGemini(selectedChat, text);
+    // 3. save AI reply
+    await saveMessage(user.uid, selectedChat, "assistant", aiReply);
+    setMessages((prev) => [...prev, { role: "assistant", text: aiReply, id: Date.now() + 1 }]);
+
+    setLoading(false);
   };
 
   return (
-    <div className="chat-container">
-      <div className="chat-header">
-        <h2><strong>AI Chat</strong></h2>
+    <div className="chat-container" style={{ display: "flex" }}>
+      {/* Sidebar with chats */}
+      <Sidebar onSelectChat={setSelectedChat} />
 
-        <div className="chat-actions">
-          <div className="status-indicator">
-            <span className={`status-dot ${isLoading ? 'loading' : 'active'}`}></span>
-            {isLoading ? 'Thinking...' : 'Online'}
-          </div>
+      {/* Chat area */}
+      <div className="chatbox" style={{ marginLeft: "20px", flex: 1 }}>
+        {selectedChat ? (
+          <div>
+          
+            <div className="messages" style={{ minHeight: "300px", border: "1px solid #ccc", padding: "10px" }}>
+              {messages.map((msg) => (
+                <p key={msg.id}>
+                  <strong>{msg.role}:</strong> {msg.text}
+                </p>
+              ))}
+              {loading && <p><em>AI is typing...</em></p>}
+            </div>
 
-          <button onClick={handleLogout} className="logout-btn">
-            <LogOut size={18} /> Logout
-          </button>
-        </div>
-      </div>
-      
-      <div className="chat-messages">
-        {chatHistory.length === 0 && (
-          <div className="empty-state">
-            <div className="empty-icon">💬</div>
-            <p>Ask AI anything!</p>
+            {/* input + send */}
+            <div style={{ marginTop: "10px" }}>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type a message..."
+                style={{ width: "80%", padding: "8px" }}
+              />
+              <button onClick={handleSend} style={{ padding: "8px 12px", marginLeft: "5px" }}>
+                Send
+              </button>
+            </div>
           </div>
+        ) : (
+          <p>Select a chat or create a new one to start messaging</p>
         )}
-        
-        {chatHistory.map((chat, index) => (
-          <div
-            key={index}
-            className={`message ${chat.sender === "user" ? "user-message" : "bot-message"}`}
-          >
-            <div className="message-sender">
-              {chat.sender === "user" ? (
-                <User size={16} className="sender-icon" />
-              ) : (
-                <div className="gemini-icon">AI</div>
-              )}
-            </div>
-            <div className="message-content">
-              <ReactMarkdown>{chat.text}</ReactMarkdown>
-            </div>
-          </div>
-        ))}
-
-        {isLoading && (
-          <div className="message bot-message">
-            <div className="message-sender">
-              <div className="gemini-icon">AI</div>
-            </div>
-            <div className="message-content">
-              <div className="typing-indicator">
-                <div className="dot"></div>
-                <div className="dot"></div>
-                <div className="dot"></div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <div ref={messagesEndRef} />
-      </div>
-
-      <div className="chat-input-container">
-        <input
-          type="text"
-          placeholder="Ask AI something..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="chat-input"
-          disabled={isLoading}
-        />
-        <button 
-          onClick={handleSend} 
-          className="send-button"
-          disabled={isLoading || !message.trim()}
-        >
-          <Send size={18} />
-        </button>
       </div>
     </div>
   );
-};
-
-export default ChatBox;
+}
