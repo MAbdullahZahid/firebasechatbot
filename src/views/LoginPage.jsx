@@ -37,6 +37,8 @@ const LoginPage = ({ onLogin }) => {
             <i className="fas fa-robot"></i>
           </div>
           <h1>Welcome to AI Chat</h1>
+          <p>Powered by Abdullah Zahid</p>
+          
         </div>
         
         <div className="login-content">
