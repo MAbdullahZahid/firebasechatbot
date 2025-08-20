@@ -21,7 +21,7 @@ export default function Chatbot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const messagesEndRef = useRef(null); // ✅ ref for auto-scroll
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
     if (!selectedChat) return;
@@ -29,7 +29,6 @@ export default function Chatbot() {
     fetchMessages();
   }, [selectedChat]);
 
-  // Scroll to bottom whenever messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
@@ -104,112 +103,71 @@ export default function Chatbot() {
   };
 
   return (
-    <div className="chat-container" style={{ display: "flex", flexDirection: "row" }}>
-      {/* Sidebar */}
+    <div className="chat-app">
       <Sidebar onSelectChat={setSelectedChat} refreshKey={refreshKey} />
-
-      {/* Main Chatbox */}
-      <div className="chatbox" style={{ marginLeft: "20px", flex: 1 }}>
-        {/* User Info + Logout */}
+      
+      <div className="chat-main">
         {auth.currentUser && (
-          <div
-            className="user-info"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "10px",
-              borderBottom: "1px solid #ccc",
-              paddingBottom: "8px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center" }}>
+          <div className="user-header">
+            <div className="user-info">
               <img
                 src={auth.currentUser.photoURL}
                 alt={auth.currentUser.displayName}
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  marginRight: "10px",
-                }}
+                className="user-avatar"
               />
-              <span style={{ fontWeight: "bold" }}>
+              <span className="user-name">
                 {auth.currentUser.displayName}
               </span>
             </div>
             <button
               onClick={handleLogout}
-              style={{
-                padding: "6px 12px",
-                backgroundColor: "#f44336",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-              }}
+              className="logout-btn"
             >
               Logout
             </button>
           </div>
         )}
 
-        {/* Messages */}
-        <div
-          className="messages"
-          style={{
-            minHeight: "300px",
-            border: "1px solid #ccc",
-            padding: "10px",
-            overflowY: "auto",
-            whiteSpace: "pre-wrap",
-            backgroundColor: "#f9f9f9",
-            borderRadius: "8px",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
+        <div className="messages-container">
           {messages.map((msg) => (
             <div
               key={msg.id}
-              
+              className={`message message-${msg.role}`}
             >
-              <ReactMarkdown>{`**${msg.role}**: ${msg.text}`}</ReactMarkdown>
+              <div className="message-role">
+                {msg.role === "user" ? "You" : "Assistant"}
+              </div>
+              <div className="message-content">
+                <ReactMarkdown>{msg.text}</ReactMarkdown>
+              </div>
             </div>
           ))}
-          {loading && <p><em>AI is typing...</em></p>}
-          <div ref={messagesEndRef} /> {/* ✅ auto-scroll anchor */}
+          {loading && (
+            <div className="typing-indicator">
+              AI is thinking...
+            </div>
+          )}
+          <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
-        <div style={{ marginTop: "10px", display: "flex", gap: "5px" }}>
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
-            style={{
-              flex: 1,
-              padding: "8px",
-              borderRadius: "4px",
-              border: "1px solid #ccc",
-              resize: "none",
-            }}
-            rows={2}
-          />
-          <button
-            onClick={handleSend}
-            style={{
-              padding: "8px 12px",
-              borderRadius: "4px",
-              backgroundColor: "#4CAF50",
-              color: "#fff",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            Send
-          </button>
+        <div className="input-container">
+          <div className="input-wrapper">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message..."
+              className="message-input"
+              rows={1}
+            />
+            <button
+              onClick={handleSend}
+              className="send-btn"
+              disabled={loading || !input.trim()}
+            >
+              Send
+            </button>
+          </div>
         </div>
       </div>
     </div>

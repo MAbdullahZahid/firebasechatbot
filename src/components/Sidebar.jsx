@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { getUserChats, createChat } from "../services/chatService"; // ✅ also import createChat
+import { getUserChats, createChat } from "../services/chatService";
 import { auth } from "../firebase";
 
-export default function Sidebar({ onSelectChat , refreshKey}) {
+export default function Sidebar({ onSelectChat, refreshKey }) {
   const [chats, setChats] = useState([]);
+  const [activeChat, setActiveChat] = useState(null);
 
   const fetchChats = async () => {
     const user = auth.currentUser;
@@ -18,35 +19,43 @@ export default function Sidebar({ onSelectChat , refreshKey}) {
   }, []);
 
   useEffect(() => {
-  fetchChats();
-}, [refreshKey]);
+    fetchChats();
+  }, [refreshKey]);
 
-
-  // ✅ handle New Chat
   const handleNewChat = async () => {
     const user = auth.currentUser;
     if (user) {
-      const newChatId = await createChat(user.uid); // pass uid
-      await fetchChats(); // refresh sidebar
-      onSelectChat(newChatId); // directly open new chat
+      const newChatId = await createChat(user.uid);
+      await fetchChats();
+      setActiveChat(newChatId);
+      onSelectChat(newChatId);
     }
+  };
+
+  const handleChatSelect = (chatId) => {
+    setActiveChat(chatId);
+    onSelectChat(chatId);
   };
 
   return (
     <div className="sidebar">
-      <h3>Your Chats</h3>
-      <button onClick={handleNewChat}>➕ New Chat</button>
-      <ul>
+      <div className="sidebar-header">
+        <h3>Your Chats</h3>
+        <button className="new-chat-btn" onClick={handleNewChat}>
+          + New Chat
+        </button>
+      </div>
+      <div className="chat-list">
         {chats.map((chat) => (
-          <li
+          <div
             key={chat.id}
-            onClick={() => onSelectChat(chat.id)}
-            style={{ cursor: "pointer" }}
+            className={`chat-item ${activeChat === chat.id ? "active" : ""}`}
+            onClick={() => handleChatSelect(chat.id)}
           >
             {chat.title || "Untitled Chat"}
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
