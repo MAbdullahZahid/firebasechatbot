@@ -4,6 +4,7 @@ import {
   getChatMessages,
   saveMessage,
   updateChatTitle,
+  createChat
 } from "../services/chatService";
 import { auth } from "../firebase";
 import Sidebar from "../components/Sidebar";
@@ -22,70 +23,108 @@ export default function Chatbot() {
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const messagesEndRef = useRef(null);
+  const [chatSessions, setChatSessions] = useState({});
 
-  useEffect(() => {
+  // Fetch messages & initialize chat session
+ useEffect(() => {
+  const initChat = async () => {
     if (!selectedChat) return;
-    setChatSession(startNewChat());
-    fetchMessages();
-  }, [selectedChat]);
+    const user = auth.currentUser;
+    if (!user) return;
 
+    // Fetch messages for this chat
+    const msgs = await getChatMessages(user.uid, selectedChat);
+    setMessages(msgs);
+
+    // Reuse existing session or create new
+    let session = chatSessions[selectedChat];
+    if (!session) {
+      session = startNewChat();
+      // Replay previous messages for context
+      for (const msg of msgs) {
+        await session.sendMessage(msg.text, { role: msg.role });
+      }
+      setChatSessions(prev => ({ ...prev, [selectedChat]: session }));
+    }
+
+    setChatSession(session);
+  };
+
+  initChat();
+}, [selectedChat]);
+
+  // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  async function fetchMessages() {
-    const user = auth.currentUser;
-    if (user && selectedChat) {
-      const msgs = await getChatMessages(user.uid, selectedChat);
-      setMessages(msgs);
-    }
+const handleSend = async () => {
+  if (!input.trim()) return;
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const text = input.trim();
+  setInput("");
+  setLoading(true);
+
+  let chatId = selectedChat;
+  let isNewChat = false;
+
+  // Create new chat if none exists
+  if (!chatId) {
+    chatId = await createChat(user.uid);
+    setSelectedChat(chatId);
+    setMessages([]);
+    isNewChat = true;
   }
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const text = input.trim();
-    setInput("");
-    setLoading(true);
-
-    let chatId = selectedChat;
-    if (!chatId) {
-      chatId = await startNewChat();
-      setSelectedChat(chatId);
-      setChatSession(startNewChat());
-      setMessages([]);
+  // Ensure chatSession exists
+  let session = chatSessions[chatId];
+  if (!session) {
+    session = startNewChat();
+    // replay previous messages
+    for (const msg of messages) {
+      await session.sendMessage(msg.text, { role: msg.role });
     }
+    setChatSessions(prev => ({ ...prev, [chatId]: session }));
+  }
 
-    await saveMessage(user.uid, chatId, "user", text);
-    setMessages((prev) => [...prev, { role: "user", text, id: Date.now() }]);
+  // Save user message and add to session for context
+// Save user message and add to session for context
+await saveMessage(user.uid, chatId, "user", text);
+setMessages((prev) => [...prev, { role: "user", text, id: Date.now() }]);
+await session.sendMessage(text, { role: "user" });
 
-    if (messages.length === 0) {
-      try {
-        const title = await generateChatTitle(chatSession, text);
-        await updateChatTitle(user.uid, chatId, title || "New Chat");
-        setRefreshKey((prev) => prev + 1);
-      } catch (err) {
-        console.error("Title generation failed:", err);
-      }
-    }
+// Only generate title for first message using a TEMP session
+if (isNewChat) {
+  try {
+    const title = await generateChatTitle(text); // temp session inside generateChatTitle
+    await updateChatTitle(user.uid, chatId, title);
+    setRefreshKey(prev => prev + 1);
+    // DO NOT return here, allow AI to respond
+  } catch (err) {
+    console.error("Title generation failed:", err);
+  }
+}
+setLoading(true);
+// Now send message to Gemini for reply (including first message)
+let aiReply = "";
+try {
+  aiReply = await runGemini(session, text);
+} catch (err) {
+  aiReply = "⚠️ Something went wrong.";
+}
 
-    let aiReply = "";
-    try {
-      aiReply = await runGemini(chatSession, text);
-    } catch (err) {
-      aiReply = "⚠️ Something went wrong.";
-    }
+// Save AI response
+await saveMessage(user.uid, chatId, "assistant", aiReply);
+setMessages((prev) => [
+  ...prev,
+  { role: "assistant", text: aiReply, id: Date.now() + 1 },
+]);
+setLoading(false);
+}
 
-    await saveMessage(user.uid, chatId, "assistant", aiReply);
-    setMessages((prev) => [
-      ...prev,
-      { role: "assistant", text: aiReply, id: Date.now() + 1 },
-    ]);
 
-    setLoading(false);
-  };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -115,38 +154,22 @@ export default function Chatbot() {
                 alt={auth.currentUser.displayName}
                 className="user-avatar"
               />
-              <span className="user-name">
-                {auth.currentUser.displayName}
-              </span>
+              <span className="user-name">{auth.currentUser.displayName}</span>
             </div>
-            <button
-              onClick={handleLogout}
-              className="logout-btn"
-            >
-              Logout
-            </button>
+            <button onClick={handleLogout} className="logout-btn">Logout</button>
           </div>
         )}
 
         <div className="messages-container">
           {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`message message-${msg.role}`}
-            >
-              <div className="message-role">
-                {msg.role === "user" ? "You" : "Assistant"}
-              </div>
+            <div key={msg.id} className={`message message-${msg.role}`}>
+              <div className="message-role">{msg.role === "user" ? "You" : "Assistant"}</div>
               <div className="message-content">
                 <ReactMarkdown>{msg.text}</ReactMarkdown>
               </div>
             </div>
           ))}
-          {loading && (
-            <div className="typing-indicator">
-              AI is thinking...
-            </div>
-          )}
+          {loading && <div className="typing-indicator">AI is thinking...</div>}
           <div ref={messagesEndRef} />
         </div>
 
