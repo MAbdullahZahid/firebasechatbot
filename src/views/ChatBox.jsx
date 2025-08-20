@@ -47,8 +47,11 @@ export default function Chatbot() {
         session = startNewChat();
         // Replay previous messages for context
         for (const msg of msgs) {
-          await session.sendMessage(msg.text, { role: msg.role });
-        }
+  if (msg.role === "assistant") {
+    await session.sendMessage(msg.text, { role: "assistant" });
+  }
+}
+
         setChatSessions(prev => ({ ...prev, [selectedChat]: session }));
       }
 

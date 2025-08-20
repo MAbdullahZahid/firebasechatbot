@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { getUserChats, createChat } from "../services/chatService";
 import { auth } from "../firebase";
 
-export default function Sidebar({ onSelectChat, refreshKey, isSidebarOpen, toggleSidebar }) {
+export default function Sidebar({onSelectChat, refreshKey, isSidebarOpen, toggleSidebar }) {
   const [chats, setChats] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
 
@@ -28,7 +28,8 @@ export default function Sidebar({ onSelectChat, refreshKey, isSidebarOpen, toggl
       const newChatId = await createChat(user.uid);
       await fetchChats();
       setActiveChat(newChatId);
-      onSelectChat(newChatId);
+      onSelectChat(newChatId, true);
+    
       if (window.innerWidth <= 768) {
         toggleSidebar();
       }
