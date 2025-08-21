@@ -89,15 +89,15 @@ export default function Chatbot() {
     }
 
     // Ensure chat session exists
-    let session = chatSessions[chatId];
-    if (!session) {
-      session = startNewChat();
-      // Replay previous messages for context
-      for (const msg of messages) {
-        await session.sendMessage(msg.text, { role: msg.role });
-      }
-      setChatSessions(prev => ({ ...prev, [chatId]: session }));
-    }
+  let session = chatSessions[chatId];
+if (!session) {
+  session = startNewChat();
+  // Replay previous messages for context, but NOT the new message being sent
+  for (const msg of messages) {
+    await session.sendMessage(msg.text, { role: msg.role });
+  }
+  setChatSessions(prev => ({ ...prev, [chatId]: session }));
+}
 
     // Save user message locally (display immediately)
     await saveMessage(user.uid, chatId, "user", text);
