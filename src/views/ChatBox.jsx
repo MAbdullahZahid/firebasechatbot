@@ -47,10 +47,10 @@ export default function Chatbot() {
         session = startNewChat();
         // Replay previous messages for context
         for (const msg of msgs) {
-  if (msg.role === "assistant") {
-    await session.sendMessage(msg.text, { role: "assistant" });
-  }
-}
+          if (msg.role === "assistant") {
+            await session.sendMessage(msg.text, { role: "assistant" });
+          }
+        }
 
         setChatSessions(prev => ({ ...prev, [selectedChat]: session }));
       }
@@ -67,70 +67,70 @@ export default function Chatbot() {
   }, [messages, loading]);
 
   const handleSend = async () => {
-  if (!input.trim()) return;
-  const user = auth.currentUser;
-  if (!user) return;
+    if (!input.trim()) return;
+    const user = auth.currentUser;
+    if (!user) return;
 
-  const text = input.trim();
-  setInput("");
-  setLoading(true);
+    const text = input.trim();
+    setInput("");
+    setLoading(true);
 
-  let chatId = selectedChat;
-  console.log("Selected chat ID:", chatId);
-  let isNewChat = true;
-console.log("Is new chat:", isNewChat);
+    let chatId = selectedChat;
+    console.log("Selected chat ID:", chatId);
+    let isNewChat = true;
+    console.log("Is new chat:", isNewChat);
 
-  // Create new chat if none exists
-  if (!chatId) {
-    chatId = await createChat(user.uid);
-    setSelectedChat(chatId);
-    setMessages([]);
-    isNewChat = true;
-  }
-
-  // Ensure chat session exists
-  let session = chatSessions[chatId];
-  if (!session) {
-    session = startNewChat();
-    // Replay previous messages for context
-    for (const msg of messages) {
-      await session.sendMessage(msg.text, { role: msg.role });
+    // Create new chat if none exists
+    if (!chatId) {
+      chatId = await createChat(user.uid);
+      setSelectedChat(chatId);
+      setMessages([]);
+      isNewChat = true;
     }
-    setChatSessions(prev => ({ ...prev, [chatId]: session }));
-  }
 
-  // Save user message locally (display immediately)
-  await saveMessage(user.uid, chatId, "user", text);
-  setMessages(prev => [...prev, { role: "user", text, id: Date.now() }]);
+    // Ensure chat session exists
+    let session = chatSessions[chatId];
+    if (!session) {
+      session = startNewChat();
+      // Replay previous messages for context
+      for (const msg of messages) {
+        await session.sendMessage(msg.text, { role: msg.role });
+      }
+      setChatSessions(prev => ({ ...prev, [chatId]: session }));
+    }
 
-  // Generate chat title if this is the first message (using temp session)
-  if (isNewChat) {
+    // Save user message locally (display immediately)
+    await saveMessage(user.uid, chatId, "user", text);
+    setMessages(prev => [...prev, { role: "user", text, id: Date.now() }]);
+
+    // Generate chat title if this is the first message (using temp session)
+    if (isNewChat) {
+      try {
+        const title = await generateChatTitle(text); // uses a temp session inside
+        await updateChatTitle(user.uid, chatId, title);
+        setRefreshKey(prev => prev + 1);
+      } catch (err) {
+        console.error("Title generation failed:", err);
+      }
+    }
+
+    // Send user message to Gemini for AI reply
+    let aiReply = "";
     try {
-      const title = await generateChatTitle(text); // uses a temp session inside
-      await updateChatTitle(user.uid, chatId, title);
-      setRefreshKey(prev => prev + 1);
+      aiReply = await runGemini(session, text);
     } catch (err) {
-      console.error("Title generation failed:", err);
+      aiReply = "⚠️ Something went wrong.";
     }
-  }
 
-  // Send user message to Gemini for AI reply
-  let aiReply = "";
-  try {
-    aiReply = await runGemini(session, text);
-  } catch (err) {
-    aiReply = "⚠️ Something went wrong.";
-  }
+    // Save AI response and update messages
+    await saveMessage(user.uid, chatId, "assistant", aiReply);
+    setMessages(prev => [
+      ...prev,
+      { role: "assistant", text: aiReply, id: Date.now() + 1 },
+    ]);
 
-  // Save AI response and update messages
-  await saveMessage(user.uid, chatId, "assistant", aiReply);
-  setMessages(prev => [
-    ...prev,
-    { role: "assistant", text: aiReply, id: Date.now() + 1 },
-  ]);
-
-  setLoading(false);
-};
+    setLoading(false);
+  };
 
 
   const handleKeyDown = (e) => {
@@ -150,13 +150,13 @@ console.log("Is new chat:", isNewChat);
 
   return (
     <div className="chat-app">
-      <Sidebar 
-        onSelectChat={setSelectedChat} 
-        refreshKey={refreshKey} 
+      <Sidebar
+        onSelectChat={setSelectedChat}
+        refreshKey={refreshKey}
         isSidebarOpen={isSidebarOpen}
         toggleSidebar={toggleSidebar}
       />
-      
+
       <div className="chat-main">
         {auth.currentUser && (
           <div className="user-header">

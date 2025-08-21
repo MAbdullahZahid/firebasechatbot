@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getUserChats, createChat } from "../services/chatService";
 import { auth } from "../firebase";
+import ReactMarkdown from "react-markdown";
 
 export default function Sidebar({onSelectChat, refreshKey, isSidebarOpen, toggleSidebar }) {
   const [chats, setChats] = useState([]);
@@ -71,7 +72,7 @@ export default function Sidebar({onSelectChat, refreshKey, isSidebarOpen, toggle
               className={`chat-item ${activeChat === chat.id ? "active" : ""}`}
               onClick={() => handleChatSelect(chat.id)}
             >
-              {chat.title || "Untitled Chat"}
+              <ReactMarkdown>{chat.title || "Untitled Chat"}</ReactMarkdown>
             </div>
           ))}
         </div>
